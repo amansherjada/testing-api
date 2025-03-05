@@ -139,7 +139,7 @@ def chat():
 
         # Here, you can add code to send the 'answer' back to the user via Gallabox's messaging API
 
-        return jsonify({"reply": answer})
+        return jsonify({"messages": [{"text": answer}]})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
