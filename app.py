@@ -17,7 +17,7 @@ app = Flask(__name__)
 embedding_model = HuggingFaceEmbeddings()
 
 # Initialize Pinecone
-PINECONE_API_KEY = "pcsk_475ix6_QNMj2etqYWbrUz2aKFQebCPzCepmZEsZFoWsMG3wjYvFaxdUFu73h7GWbieTeti"
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("ahlchatbot-customer")
 
@@ -26,7 +26,7 @@ vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
 retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
 # Initialize LLM
-llm = ChatGroq(model="llama-3.3-70b-versatile", api_key="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")
+llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY"))
 
 # Custom Prompt Template
 custom_prompt_template = """
@@ -120,14 +120,24 @@ qa = RetrievalQA.from_chain_type(
 def chat():
     try:
         data = request.json
-        user_message = data.get("message", "")
+        event_type = data.get("event", "")
+        contact = data.get("contact", {})
+        message = data.get("message", {})
+        user_message = message.get("text", "")
+        user_phone = contact.get("phone", "")
 
         if not user_message:
-            return jsonify({"error": "No message provided"}), 400
+            return jsonify({"error": "No message content provided"}), 400
 
         # Process user message
         result = qa.invoke({"query": user_message})
         answer = result["result"]
+
+        # Log the interaction
+        print(f"Received message from {user_phone}: {user_message}")
+        print(f"Bot response: {answer}")
+
+        # Here, you can add code to send the 'answer' back to the user via Gallabox's messaging API
 
         return jsonify({"reply": answer})
 
