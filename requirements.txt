@@ -8,4 +8,4 @@ flask
 langchain-groq
 langchain-core
 python-dotenv
-gunicorn app:app
+gunicorn
