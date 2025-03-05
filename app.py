@@ -17,7 +17,7 @@ app = Flask(__name__)
 embedding_model = HuggingFaceEmbeddings()
 
 # Initialize Pinecone
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_API_KEY = "pcsk_475ix6_QNMj2etqYWbrUz2aKFQebCPzCepmZEsZFoWsMG3wjYvFaxdUFu73h7GWbieTeti"
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("ahlchatbot-customer")
 
@@ -26,7 +26,7 @@ vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
 retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
 # Initialize LLM
-llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY"))
+llm = ChatGroq(model="llama-3.3-70b-versatile", api_key="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")
 
 # Custom Prompt Template
 custom_prompt_template = """
