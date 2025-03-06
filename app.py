@@ -1,5 +1,6 @@
 import os
-from flask import Flask, request, jsonify
+import json
+from flask import Flask, request, jsonify, Response
 from dotenv import load_dotenv
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
@@ -17,7 +18,7 @@ app = Flask(__name__)
 embedding_model = HuggingFaceEmbeddings()
 
 # Initialize Pinecone
-PINECONE_API_KEY = "pcsk_475ix6_QNMj2etqYWbrUz2aKFQebCPzCepmZEsZFoWsMG3wjYvFaxdUFu73h7GWbieTeti"
+PINECONE_API_KEY = "pcsk_475ix6_QNMj2etqYWbrUz2aKFQebCPzCepmZEsZFoWsMG3wjYvFaxdUFu73h7GWbieTeti"  # Load API key from env variables
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("ahlchatbot-customer")
 
@@ -26,12 +27,11 @@ vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
 retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
 # Initialize LLM
-llm = ChatGroq(model="llama-3.3-70b-versatile", api_key="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")
+llm = ChatGroq(model="llama-3.3-70b-versatile", api_key="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")  # Load API key from env
 
 # Custom Prompt Template
 custom_prompt_template = """
 # American Hairline Customer Support AI Assistant
-
 ## Core Objective
 Provide exceptional, personalized customer support for non-surgical hair replacement solutions, guiding potential clients through their hair restoration journey.
 
@@ -103,7 +103,6 @@ Always guide conversations towards:
 {context}
 
 {question}
-
 """
 
 prompt = PromptTemplate(template=custom_prompt_template, input_variables=["context", "question"])
@@ -119,7 +118,11 @@ qa = RetrievalQA.from_chain_type(
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
+        # Log incoming request
         data = request.json
+        print(f"Incoming Request from Gallabox: {json.dumps(data, indent=2)}")
+
+        # Extract user message
         event_type = data.get("event", "")
         contact = data.get("contact", {})
         message = data.get("message", {})
@@ -131,17 +134,24 @@ def chat():
 
         # Process user message
         result = qa.invoke({"query": user_message})
-        answer = result["result"]
+        answer = result.get("result", "Sorry, I couldn't find an answer.")
 
-        # Log the interaction
+        # Log AI response
         print(f"Received message from {user_phone}: {user_message}")
         print(f"Bot response: {answer}")
 
-        # Here, you can add code to send the 'answer' back to the user via Gallabox's messaging API
+        # Ensure JSON response matches Gallabox's format
+        response_data = {
+            "status": "success",
+            "data": {
+                "messages": [{"text": answer}]
+            }
+        }
 
-        return jsonify({"messages": [{"text": answer}]})
+        return Response(json.dumps(response_data), status=200, mimetype="application/json")
 
     except Exception as e:
+        print(f"Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
